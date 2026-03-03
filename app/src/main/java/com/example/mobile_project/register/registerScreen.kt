@@ -27,8 +27,8 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(top = 40.dp)
-            .verticalScroll(rememberScrollState()),
+            .padding(top = 40.dp),
+        // ❌ เอา verticalScroll ออกจากตรงนี้
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // --- ส่วนของโลโก้ ---
@@ -49,17 +49,22 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
         // --- ส่วนของฟอร์มพื้นหลังสีฟ้าอ่อน ---
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .weight(1f) // ✅ ใส่ weight(1f) เพื่อบังคับให้กล่องนี้ดันลงไปจนสุดขอบจอด้านล่าง
                 .background(
                     color = Color(0xFFE1F1FA),
                     shape = RoundedCornerShape(topStart = 60.dp, topEnd = 60.dp)
                 )
-                .padding(horizontal = 32.dp, vertical = 40.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp)
+                    .verticalScroll(rememberScrollState()) // ✅ ย้าย verticalScroll มาไว้ด้านในนี้
             ) {
+                // เผื่อขอบด้านบนนิดหน่อยกันฟอร์มชิดขอบโค้งเกินไป
+                Spacer(modifier = Modifier.height(40.dp))
 
                 RegisterTextField(label = "Name")
                 Spacer(modifier = Modifier.height(12.dp))
@@ -106,7 +111,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ใส่ modifier clickable เพื่อให้กดแล้วกลับหน้า Login
+                // ปุ่มกดกลับไปหน้า Login
                 Row(modifier = Modifier.clickable { onNavigateToLogin() }) {
                     Text(text = "Already have an account? ", color = Color(0xFF00337C))
                     Text(
@@ -117,7 +122,8 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                // เผื่อที่ว่างด้านล่างสุดตอนที่ผู้ใช้เลื่อนหน้าจอลงมาสุด
+                Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }

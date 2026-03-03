@@ -74,7 +74,7 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
             .background(TopBackgroundColor),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // --- ส่วนบน (โลโก้ และ ข้อความ) ---
+        // --- ส่วนบน (โลโก้ และ ข้อความ) ใช้แบบเดิมตามที่คุณต้องการ ---
         Spacer(modifier = Modifier.height(80.dp))
 
         Image(
@@ -96,6 +96,7 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
             lineHeight = 38.sp
         )
 
+        // Spacer ตัวนี้จะทำหน้าที่ดันกรอบสีฟ้าให้ลงไปอยู่ด้านล่างสุด
         Spacer(modifier = Modifier.weight(1f))
 
         // --- ส่วนล่าง (กล่องสีฟ้าและปุ่มกด) ---
@@ -107,7 +108,9 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 56.dp),
+                    // ปรับให้กรอบสีฟ้าสูงขึ้น เหมาะกับจอ Pixel 9a
+                    // เพิ่ม top เป็น 72.dp และ bottom เป็น 110.dp (เดิม 56.dp)
+                    .padding(top = 72.dp, bottom = 110.dp, start = 32.dp, end = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -120,7 +123,7 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Welcome To HirCar, where\nyou can find your perfect car",
+                    text = "Welcome To HitCar, where\nyou can find your perfect car",
                     fontSize = 16.sp,
                     color = Color.White,
                     textAlign = TextAlign.Center,
@@ -129,11 +132,11 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                // ปุ่ม Login
+                // ปุ่ม Login - ปรับเป็น fillMaxWidth() ให้อยู่ในกรอบ padding จะได้สมมาตร
                 Button(
                     onClick = { onLoginClick() },
                     modifier = Modifier
-                        .fillMaxWidth(0.85f)
+                        .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryDarkBlue),
                     shape = RoundedCornerShape(28.dp)
@@ -152,7 +155,7 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
                 Button(
                     onClick = { onRegisterClick() },
                     modifier = Modifier
-                        .fillMaxWidth(0.85f)
+                        .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     shape = RoundedCornerShape(28.dp)
