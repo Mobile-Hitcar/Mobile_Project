@@ -50,12 +50,13 @@ class MainActivity : ComponentActivity() {
             val showBars = currentRoute in screensWithBars
 
             // โครงสร้างหลักของแอป
+            // โครงสร้างหลักของแอป
             Scaffold(
                 topBar = {
                     // โชว์ TopBar เฉพาะหน้าที่กำหนด
                     if (showBars) {
                         CustomTopAppBar(
-                            onBackClick = { navController.popBackStack() } // <--- เพิ่มบรรทัดนี้เข้าไป
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
                 },
@@ -70,9 +71,11 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(
                     navController = navController,
-                    startDestination = "welcome", // เริ่มที่หน้า Welcome
-                    modifier = Modifier.padding(innerPadding) // <--- สำคัญมาก! ตัวนี้จะจัดการไม่ให้เนื้อหาโดนบาร์ทับ
+                    startDestination = "home",
+                    // ✅ แก้ไขตรงนี้: เช็คว่าถ้าเป็นหน้าที่มี Bar ค่อยใส่ padding ถ้าไม่มีให้ทะลุขอบจอ (Modifier เปล่าๆ)
+                    modifier = if (showBars) Modifier.padding(innerPadding) else Modifier
                 ) {
+                    // ... (composable หน้าอื่นๆ ด้านในคงไว้เหมือนเดิม) ...
                     composable("welcome") {
                         WelcomeScreen(
                             onLoginClick = { navController.navigate("login") },
@@ -97,6 +100,9 @@ class MainActivity : ComponentActivity() {
                     // หน้า Home ของเรา
                     composable("home") {
                         HomeScreen()
+                    }
+                    composable("test-vehicle") {
+                        VehicleTestScreen()
                     }
                 }
             }
