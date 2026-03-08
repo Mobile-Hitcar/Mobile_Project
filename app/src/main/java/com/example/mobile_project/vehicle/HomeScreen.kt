@@ -27,9 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.mobile_project.R
-import com.example.mobile_project.vehicle.VehicleEntity
-import com.example.mobile_project.vehicle.VehicleViewModel
-import com.example.mobile_project.vehicle.VehicleViewModelFactory
+
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.material3.DropdownMenu
@@ -41,6 +39,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
+import com.example.mobile_project.firebaseDB.VehicleEntity
+import com.example.mobile_project.firebaseDB.VehicleViewModel
+import coil.compose.AsyncImage
 
 // สีตาม Design
 val AppLightBlue = Color(0xFF2FA2E9) // สีฟ้าสว่าง (Top Bar / Bottom Bar)
@@ -50,25 +51,35 @@ val BgColor = Color(0xFFF6F8FA) // สีพื้นหลัง
 @Composable
 fun HomeScreen() {
     val context = LocalContext.current
-    val vehicleViewModel: VehicleViewModel = viewModel(
-        factory = VehicleViewModelFactory(context)
-    )
+    val vehicleViewModel: VehicleViewModel = viewModel()
 
-    // ดึงข้อมูลรถจาก Database
     val vehicles by vehicleViewModel.allVehicles.collectAsState(initial = emptyList())
 
-    // ลบ Scaffold ออกไปเลย ใช้แค่ LazyColumn
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp), // ระยะห่างขอบซ้ายขวาของลิสต์รถ
-        contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(vehicles) { vehicle ->
-            CarItemCard(vehicle = vehicle)
+    Column(modifier = Modifier.fillMaxSize()) {
+
+        // ปุ่มเสกข้อมูล (เพิ่มการส่ง context ไปด้วยเพื่อใช้โชว์แจ้งเตือน)
+        Button(
+            onClick = { vehicleViewModel.addMockData(context) },
+            modifier = Modifier.padding(16.dp).fillMaxWidth()
+        ) {
+            Text("เสกข้อมูลจำลอง (Mock Data)")
+        }
+
+        // รายการรถ
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 0.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(vehicles) { vehicle ->
+                CarItemCard(vehicle = vehicle)
+            }
         }
     }
+
+    // ❌ โค้ด LazyColumn อันล่างสุดที่เคยอยู่ตรงนี้ถูกลบทิ้งไปแล้ว เพื่อไม่ให้มันบังหน้าจอครับ ❌
 }
 
 
@@ -175,22 +186,17 @@ fun CarItemCard(vehicle: VehicleEntity) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // รูปภาพรถ (ตอนนี้เป็นกล่องว่างๆ รองรับ null ไปก่อน)
-                Box(
+                // ✅ เปลี่ยนตรงนี้เป็น AsyncImage
+                AsyncImage(
+                    model = vehicle.imageUrl,
+                    contentDescription = "Car Image",
                     modifier = Modifier
                         .weight(1f)
                         .height(100.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color.LightGray.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsCar,
-                        contentDescription = "Car Image",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
+                    contentScale = ContentScale.Crop,
+                )
 
                 Spacer(modifier = Modifier.width(16.dp))
 
