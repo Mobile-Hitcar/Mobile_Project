@@ -27,12 +27,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.mobile_project.editprofile.ProfileScreen
 import com.example.mobile_project.login.LoginScreen
 import com.example.mobile_project.register.RegisterScreen
 import com.example.mobile_project.vehicle.CustomBottomNavBar
 import com.example.mobile_project.vehicle.CustomTopAppBar
 import com.example.mobile_project.vehicle.HomeScreen
 import com.example.mobile_project.vehicle.VehicleTestScreen
+import com.example.mobile_project.firebaseDB.UserSession // อย่าลืม Import
+import com.google.firebase.auth.FirebaseAuth // อย่าลืม Import
 
 
 class MainActivity : ComponentActivity() {
@@ -44,19 +47,32 @@ class MainActivity : ComponentActivity() {
             val currentRoute = navBackStackEntry?.destination?.route
 
             // กำหนดรายชื่อหน้าจอที่ "ต้องการให้แสดง" TopBar และ BottomBar
-            val screensWithBars = listOf("home")
+            val screensWithBars = listOf("home", "profile")
 
             // ตัวแปรเช็คว่าควรโชว์บาร์ไหม (ถ้า currentRoute อยู่ในลิสต์ด้านบน จะเป็น true)
             val showBars = currentRoute in screensWithBars
 
             // โครงสร้างหลักของแอป
-            // โครงสร้างหลักของแอป
             Scaffold(
                 topBar = {
-                    // โชว์ TopBar เฉพาะหน้าที่กำหนด
                     if (showBars) {
                         CustomTopAppBar(
-                            onBackClick = { navController.popBackStack() }
+                            onBackClick = { navController.popBackStack() },
+                            // ✅ เพิ่มคำสั่งนี้เข้าไป
+                            onLogoutClick = {
+                                // 1. ล้างข้อมูล Session อีเมล
+                                UserSession.currentUserEmail = ""
+
+                                // 2. สั่ง SignOut ออกจากระบบ Google (ถ้ามี)
+                                FirebaseAuth.getInstance().signOut()
+
+                                // 3. กลับไปหน้า Welcome และล้างประวัติหน้าจอทั้งหมดทิ้ง
+                                navController.navigate("welcome") {
+                                    popUpTo(navController.graph.id) {
+                                        inclusive = true
+                                    }
+                                }
+                            }
                         )
                     }
                 },
@@ -110,6 +126,9 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("test-vehicle") {
                         VehicleTestScreen()
+                    }
+                    composable("profile") {
+                        ProfileScreen()
                     }
                 }
             }

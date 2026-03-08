@@ -22,7 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mobile_project.R
 import com.example.mobile_project.firebaseDB.UserViewModel
-
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.VisualTransformation
 
 @Composable
 fun RegisterScreen(
@@ -35,6 +36,8 @@ fun RegisterScreen(
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    // ✅ เพิ่มตัวแปรนี้เข้าไป
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -113,9 +116,14 @@ fun RegisterScreen(
                     placeholder = { Text("Password") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(30.dp),
-                    visualTransformation = PasswordVisualTransformation(),
+                    // ✅ สลับการแสดงผลตัวอักษร
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        Icon(imageVector = Icons.Default.Visibility, contentDescription = null)
+                        // ✅ สลับไอคอนและทำให้กดได้
+                        val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = "Toggle password visibility")
+                        }
                     },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Color.White,

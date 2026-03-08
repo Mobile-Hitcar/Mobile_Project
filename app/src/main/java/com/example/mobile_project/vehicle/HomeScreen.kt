@@ -2,6 +2,7 @@ package com.example.mobile_project.vehicle
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +32,15 @@ import com.example.mobile_project.vehicle.VehicleViewModel
 import com.example.mobile_project.vehicle.VehicleViewModelFactory
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
 
 // สีตาม Design
 val AppLightBlue = Color(0xFF2FA2E9) // สีฟ้าสว่าง (Top Bar / Bottom Bar)
@@ -63,59 +73,91 @@ fun HomeScreen() {
 
 
 @Composable
-fun CustomTopAppBar(onBackClick: () -> Unit) {
+fun CustomTopAppBar(
+    onBackClick: () -> Unit,
+    onLogoutClick: () -> Unit = {} // ✅ 1. เพิ่มพารามิเตอร์นี้สำหรับสั่ง Logout
+) {
+    // ✅ 2. สร้าง State สำหรับควบคุมการแสดงผล เมนู และ กล่องยืนยัน
+    var showMenu by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = Color(0xFF2FA2E9), // สีฟ้าตามดีไซน์
+                color = Color(0xFF2FA2E9),
                 shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             )
     ) {
-        // 1. ดันพื้นที่ Status Bar
         Spacer(modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars))
 
-        // 2. ใช้ Box เพื่อให้โลโก้อยู่ตรงกลางเป๊ะๆ
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp) // ลดความสูงลงมาเพื่อให้แถบดูเล็กลงและขยับขึ้นไปอีก
+                .height(56.dp)
                 .padding(horizontal = 16.dp)
         ) {
-            // ส่วนที่ 1: มุมซ้าย (ไอคอน Back iOS)
-//            IconButton(
-//                onClick = { onBackClick() },
-//                modifier = Modifier.align(Alignment.CenterStart)
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.ArrowBackIosNew,
-//                    contentDescription = "Back",
-//                    tint = Color.White,
-//                    modifier = Modifier.size(24.dp)
-//                )
-//            }
-
-            // ส่วนที่ 2: ตรงกลาง (โลโก้ HitCar)
+            // โลโก้ HitCar (ตรงกลาง)
             Image(
                 painter = painterResource(id = R.drawable.hitcar_template),
                 contentDescription = "HitCar Logo",
                 modifier = Modifier
                     .height(32.dp)
-                    .align(Alignment.Center), // สั่งให้อยู่ตรงกลาง Box
+                    .align(Alignment.Center),
                 contentScale = ContentScale.Fit
             )
 
-            // ส่วนที่ 3: มุมขวา (ไอคอนโปรไฟล์)
-            Icon(
-                imageVector = Icons.Default.AccountCircle,
-                contentDescription = "Profile",
-                tint = Color.White,
-                modifier = Modifier
-                    .size(36.dp)
-                    .align(Alignment.CenterEnd) // สั่งให้อยู่ชิดขวา
-                    .background(Color.Black, CircleShape)
-            )
+            // ✅ 3. ส่วนของไอคอนโปรไฟล์ (มุมขวา) ที่กดแล้วมีเมนูโผล่มา
+            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Profile",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color.Black, CircleShape)
+                        .clickable { showMenu = true } // พอกดแล้วให้โชว์เมนู
+                )
+
+                // เมนู Dropdown
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Logout") },
+                        onClick = {
+                            showMenu = false
+                            showLogoutDialog = true // กด Logout ให้ปิดเมนู แล้วโชว์ Dialog
+                        }
+                    )
+                }
+            }
         }
+    }
+
+    // ✅ 4. กล่อง Dialog ถามยืนยันการออกจากระบบ
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(text = "ยืนยันการออกจากระบบ", fontWeight = FontWeight.Bold)
+            },
+            text = { Text("คุณต้องการออกจากระบบใช่หรือไม่?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutDialog = false
+                    onLogoutClick() // เรียกใช้ฟังก์ชัน Logout ที่ส่งมาจาก MainActivity
+                }) {
+                    Text("ออกจากระบบ", color = Color.Red, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("ยกเลิก", color = Color.Gray)
+                }
+            }
+        )
     }
 }
 
@@ -292,7 +334,9 @@ fun BottomNavItem(icon: androidx.compose.ui.graphics.vector.ImageVector,
                   onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(8.dp)
+        modifier = Modifier
+            .clickable { onClick() } // ✅ 1. เพิ่มบรรทัดนี้เข้าไปเพื่อให้กดได้
+            .padding(8.dp)           // (ต้องวาง clickable ไว้ก่อน padding นะครับ เพื่อให้พื้นที่กดกว้างขึ้น)
     ) {
         Icon(
             imageVector = icon,

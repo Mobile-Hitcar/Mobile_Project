@@ -11,6 +11,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 
+// ✅ 1. เพิ่ม Object นี้ไว้ด้านบนสุด เพื่อจดจำอีเมลของคนที่ใช้งานอยู่ตอนนี้
+object UserSession {
+    var currentUserEmail: String = ""
+}
+
 // 1. สร้าง Data Class ตาม Diagram ของคุณ
 data class User(
     val id: String = "",
@@ -76,19 +81,65 @@ class UserViewModel(
     fun loginUser(email: String, password: String, onResult: (Boolean) -> Unit) {
         val db = Firebase.firestore
         db.collection("users")
-            // ค้นหาเอกสารที่ email และ password ตรงกับที่พิมพ์มา
             .whereEqualTo("email", email)
             .whereEqualTo("password", password)
             .get()
             .addOnSuccessListener { documents ->
                 if (documents.isEmpty) {
-                    onResult(false) // ไม่พบข้อมูล (รหัสผ่านผิด หรือไม่มีอีเมลนี้)
+                    onResult(false)
                 } else {
-                    onResult(true) // เจอข้อมูล ล็อกอินสำเร็จ!
+                    // ✅ 2. เมื่อล็อกอินสำเร็จ ให้จำอีเมลนี้เก็บไว้ใน Session
+                    UserSession.currentUserEmail = email
+                    onResult(true)
                 }
             }
-            .addOnFailureListener {
-                onResult(false) // เผื่อกรณีเน็ตหลุดหรือมี Error
+            .addOnFailureListener { onResult(false) }
+    }
+
+    fun fetchUserData(email: String, onResult: (User?) -> Unit) {
+        val db = Firebase.firestore
+        db.collection("users").whereEqualTo("email", email).get()
+            .addOnSuccessListener { documents ->
+                if (!documents.isEmpty) {
+                    // ดึงเอกสารแรกที่เจอมาแปลงเป็น Data Class User
+                    val user = documents.documents[0].toObject(User::class.java)
+                    onResult(user)
+                } else {
+                    onResult(null)
+                }
             }
+            .addOnFailureListener { onResult(null) }
+    }
+
+    // 2. ฟังก์ชันสำหรับบันทึกข้อมูลที่แก้ไขกลับลงไปใน Firestore
+    fun updateUserData(
+        oldEmail: String, // รับอีเมลเดิมมาเพื่อใช้ค้นหา
+        newEmail: String, // รับอีเมลใหม่ที่ผู้ใช้พิมพ์แก้
+        newFirstName: String,
+        newLastName: String,
+        newPhone: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        val db = Firebase.firestore
+        db.collection("users").whereEqualTo("email", oldEmail).get()
+            .addOnSuccessListener { documents ->
+                if (!documents.isEmpty) {
+                    val docId = documents.documents[0].id
+                    db.collection("users").document(docId)
+                        .update(
+                            mapOf(
+                                "email" to newEmail, // ✅ อัปเดตอีเมลใหม่ลง Firestore
+                                "firstName" to newFirstName,
+                                "lastName" to newLastName,
+                                "phone" to newPhone
+                            )
+                        )
+                        .addOnSuccessListener { onResult(true) }
+                        .addOnFailureListener { onResult(false) }
+                } else {
+                    onResult(false) // หาอีเมลเดิมไม่เจอ
+                }
+            }
+            .addOnFailureListener { onResult(false) }
     }
 }

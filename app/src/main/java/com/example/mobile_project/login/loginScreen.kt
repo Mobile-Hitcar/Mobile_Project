@@ -34,6 +34,9 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import android.util.Log
+import com.example.mobile_project.firebaseDB.UserSession // ✅ เพิ่มบรรทัดนี้
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.VisualTransformation
 
 @Composable
 fun LoginScreen(
@@ -44,12 +47,15 @@ fun LoginScreen(
     // ✅ สร้าง State เก็บอีเมลและรหัสผ่าน
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    // ✅ เพิ่มตัวแปรนี้เพื่อเช็คว่าโชว์รหัสผ่านหรือยัง (ค่าเริ่มต้นคือ false = ซ่อน)
+    var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current // เอาไว้ใช้โชว์ข้อความแจ้งเตือน
 
     val auth = FirebaseAuth.getInstance()
     // เอา Web client ID ที่ก๊อปปี้มาจาก Firebase Console มาใส่ตรงนี้
-    val webClientId = "เอา key ใส่"
+    val webClientId = ""
 
+    // ตัวเรียกหน้าต่าง Login ของ Google และรับผลลัพธ์กลับมา
     // ตัวเรียกหน้าต่าง Login ของ Google และรับผลลัพธ์กลับมา
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -62,6 +68,10 @@ fun LoginScreen(
 
                 auth.signInWithCredential(credential).addOnCompleteListener { authTask ->
                     if (authTask.isSuccessful) {
+
+                        // ✅ ใส่โค้ดตรงนี้ครับ! เพื่อเก็บอีเมลจาก Google ลงใน Session
+                        UserSession.currentUserEmail = account.email ?: ""
+
                         Toast.makeText(context, "Google Login สำเร็จ!", Toast.LENGTH_SHORT).show()
                         onNavigateToHome()
                     } else {
@@ -145,14 +155,19 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
-                    value = password, // ✅ ผูกค่ากับ State
-                    onValueChange = { password = it }, // ✅ อัปเดตค่าเมื่อพิมพ์
+                    value = password,
+                    onValueChange = { password = it },
                     placeholder = { Text("Password") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(30.dp),
-                    visualTransformation = PasswordVisualTransformation(),
+                    // ✅ สลับการแสดงผลตัวอักษรตามสถานะ
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        Icon(imageVector = Icons.Default.Visibility, contentDescription = null)
+                        // ✅ สลับไอคอนรูปลูกตา และทำให้กดได้ด้วย IconButton
+                        val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, contentDescription = "Toggle password visibility")
+                        }
                     },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = Color.White,
