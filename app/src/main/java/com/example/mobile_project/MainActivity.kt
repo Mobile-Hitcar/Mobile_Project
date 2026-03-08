@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(
                     navController = navController,
-                    startDestination = "home",
+                    startDestination = "welcome",
                     // ✅ แก้ไขตรงนี้: เช็คว่าถ้าเป็นหน้าที่มี Bar ค่อยใส่ padding ถ้าไม่มีให้ทะลุขอบจอ (Modifier เปล่าๆ)
                     modifier = if (showBars) Modifier.padding(innerPadding) else Modifier
                 ) {
@@ -86,6 +86,13 @@ class MainActivity : ComponentActivity() {
                         LoginScreen(
                             onNavigateToRegister = {
                                 navController.navigate("register") { popUpTo("welcome") }
+                            },
+                            // ✅ เพิ่มบรรทัดนี้ เพื่อให้เวลากด Login แล้วเด้งไปหน้า home
+                            onNavigateToHome = {
+                                navController.navigate("home") {
+                                    // ลบประวัติหน้า login ทิ้งไป เวลาผู้ใช้กดปุ่ม Back จะได้ไม่ถอยกลับมาหน้า login อีก
+                                    popUpTo("login") { inclusive = true }
+                                }
                             }
                         )
                     }

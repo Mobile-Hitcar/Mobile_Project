@@ -83,17 +83,17 @@ fun CustomTopAppBar(onBackClick: () -> Unit) {
                 .padding(horizontal = 16.dp)
         ) {
             // ส่วนที่ 1: มุมซ้าย (ไอคอน Back iOS)
-            IconButton(
-                onClick = { onBackClick() },
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBackIosNew,
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+//            IconButton(
+//                onClick = { onBackClick() },
+//                modifier = Modifier.align(Alignment.CenterStart)
+//            ) {
+//                Icon(
+//                    imageVector = Icons.Default.ArrowBackIosNew,
+//                    contentDescription = "Back",
+//                    tint = Color.White,
+//                    modifier = Modifier.size(24.dp)
+//                )
+//            }
 
             // ส่วนที่ 2: ตรงกลาง (โลโก้ HitCar)
             Image(
