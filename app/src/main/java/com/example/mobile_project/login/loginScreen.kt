@@ -109,11 +109,11 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Logo
-        Icon(
+        // --- ส่วนของโลโก้ ---
+        Image(
             painter = painterResource(id = R.drawable.hitcar_template),
-            contentDescription = "HitCar Logo",
-            modifier = Modifier.size(140.dp), // ขยายจาก 100.dp เป็น 140.dp
-            tint = Color(0xFF00337C)
+            contentDescription = "Hitcar Logo",
+            modifier = Modifier.size(180.dp) // ขยายจาก 140.dp เป็น 180.dp
         )
         Text(
             text = "HitCar",
