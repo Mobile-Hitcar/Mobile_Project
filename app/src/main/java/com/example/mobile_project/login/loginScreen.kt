@@ -72,7 +72,7 @@ fun LoginScreen(
                         // ✅ ใส่โค้ดตรงนี้ครับ! เพื่อเก็บอีเมลจาก Google ลงใน Session
                         UserSession.currentUserEmail = account.email ?: ""
 
-                        Toast.makeText(context, "Google Login สำเร็จ!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Google Login successful!", Toast.LENGTH_SHORT).show()
                         onNavigateToHome()
                     } else {
                         // ✅ ถ้า Firebase ปฏิเสธ จะแสดงข้อความตรงนี้
@@ -87,7 +87,7 @@ fun LoginScreen(
                 Log.e("LoginError", "Google API Error: ${e.statusCode}")
             }
         } else {
-            Toast.makeText(context, "ยกเลิกการล็อกอิน", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Login cancelled", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -107,7 +107,7 @@ fun LoginScreen(
         )
 
         Text(
-            text = "hitcar",
+            text = "HitCar",
             fontSize = 48.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF00337C),
@@ -115,7 +115,7 @@ fun LoginScreen(
         )
 
         Text(
-            text = "Login to your Account",
+            text = "Login to Your Account",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF00337C),
@@ -185,14 +185,14 @@ fun LoginScreen(
                         if(email.isNotEmpty() && password.isNotEmpty()){
                             userViewModel.loginUser(email, password) { isSuccess ->
                                 if (isSuccess) {
-                                    Toast.makeText(context, "Login สำเร็จ!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
                                     onNavigateToHome() // ไปหน้า Home
                                 } else {
-                                    Toast.makeText(context, "Email หรือ Password ไม่ถูกต้อง", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Invalid email or password.", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         } else {
-                            Toast.makeText(context, "กรุณากรอกข้อมูลให้ครบ", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Please fill in all fields.", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier

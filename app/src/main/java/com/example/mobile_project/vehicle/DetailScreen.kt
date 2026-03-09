@@ -1,6 +1,8 @@
 package com.example.mobile_project.vehicle
 
 import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,7 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -24,36 +28,32 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.mobile_project.firebaseDB.OrderViewModel
 import com.example.mobile_project.firebaseDB.UserSession
-import com.example.mobile_project.firebaseDB.VehicleEntity
 import com.example.mobile_project.firebaseDB.VehicleViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
-fun DetailScreen(
-    vehicleId: String,
-    onBackClick: () -> Unit
-) {
+fun DetailScreen(vehicleId: String, onBackClick: () -> Unit) {
     val context = LocalContext.current
     val vehicleViewModel: VehicleViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
 
-    // ดึงรถทั้งหมดแล้วหาคันที่ตรงกับ vehicleId
     val vehicles by vehicleViewModel.allVehicles.collectAsState(initial = emptyList())
     val vehicle = vehicles.find { it.id == vehicleId }
 
-    // State สำหรับ Popup ยืนยันสั่งซื้อ
     var showConfirmDialog by remember { mutableStateOf(false) }
-    // State สำหรับ Loading ขณะบันทึกคำสั่งซื้อ
     var isOrdering by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BgColor)
-    ) {
+    // entrance animation
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(vehicleId) { visible = true }
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(400, easing = EaseOutCubic), label = "da"
+    )
+
+    Box(modifier = Modifier.fillMaxSize().background(BgColor)) {
         if (vehicle == null) {
-            // Loading state
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = AppDarkBlue)
             }
@@ -61,142 +61,177 @@ fun DetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .alpha(contentAlpha)
                     .verticalScroll(rememberScrollState())
             ) {
-                // ── รูปรถ ──
-                AsyncImage(
-                    model = vehicle.imageUrl,
-                    contentDescription = "Car Image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(260.dp)
-                        .background(Color.LightGray.copy(alpha = 0.2f)),
-                    contentScale = ContentScale.Crop
-                )
+                // รูปรถ + gradient overlay
+                Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
+                    AsyncImage(
+                        model = vehicle.imageUrl,
+                        contentDescription = "Car Image",
+                        modifier = Modifier.fillMaxSize().background(Color.LightGray.copy(0.2f)),
+                        contentScale = ContentScale.Crop
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .align(Alignment.BottomStart)
+                            .background(
+                                Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.5f)))
+                            )
+                    )
+                    // ชื่อรถ + ราคา บนรูป
+                    Column(
+                        modifier = Modifier.align(Alignment.BottomStart).padding(20.dp)
+                    ) {
+                        Text(
+                            "${vehicle.brand} ${vehicle.model}",
+                            fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color.White
+                        )
+                        Text(
+                            "฿ ${NumberFormat.getNumberInstance(Locale.US).format(vehicle.price)}",
+                            fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7DC8F5)
+                        )
+                    }
+                }
 
-                // ── ส่วนข้อมูล ──
+                // Content panel
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                        .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                         .background(Color.White)
-                        .padding(horizontal = 24.dp, vertical = 28.dp)
+                        .padding(horizontal = 24.dp, vertical = 24.dp)
                 ) {
-                    // ชื่อรถ + ราคา
-                    Text(
-                        text = "${vehicle.brand} ${vehicle.model}",
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppDarkBlue
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "฿ ${NumberFormat.getNumberInstance(Locale.US).format(vehicle.price)}",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppLightBlue
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // ── Grid สเปค ──
-                    Text(
-                        text = "ข้อมูลจำเพาะ",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppDarkBlue
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            SpecDetailItem(icon = Icons.Default.DirectionsCar, label = "ประเภท", value = vehicle.segment)
-                            SpecDetailItem(icon = Icons.Default.AirlineSeatReclineNormal, label = "จำนวนที่นั่ง", value = "${vehicle.seats} ที่นั่ง")
-                            SpecDetailItem(icon = Icons.Default.Settings, label = "เกียร์", value = vehicle.gear)
-                        }
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            SpecDetailItem(icon = Icons.Default.MeetingRoom, label = "จำนวนประตู", value = "${vehicle.door} ประตู")
-                            SpecDetailItem(icon = Icons.Default.LocalGasStation, label = "พลังงาน", value = vehicle.energy)
-                            SpecDetailItem(
-                                icon = Icons.Default.CheckCircle,
-                                label = "สถานะ",
-                                value = vehicle.status,
-                                valueColor = if (vehicle.status == "Available") Color(0xFF2E7D32) else Color.Red
-                            )
-                        }
+                    // Section: Specifications
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp).height(20.dp)
+                                .background(AppLightBlue, RoundedCornerShape(2.dp))
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            "Specifications",
+                            fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AppDarkBlue
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
-                    // ── ปุ่มสั่งซื้อ ──
+                    // 2x3 spec grid
+                    val specs = listOf(
+                        Triple(Icons.Default.DirectionsCar, "Type", vehicle.segment),
+                        Triple(Icons.Default.MeetingRoom, "Doors", "${vehicle.door} doors"),
+                        Triple(Icons.Default.AirlineSeatReclineNormal, "Seats", "${vehicle.seats} seats"),
+                        Triple(Icons.Default.LocalGasStation, "Fuel", vehicle.energy),
+                        Triple(Icons.Default.Settings, "Transmission", vehicle.gear),
+                        Triple(
+                            if (vehicle.status == "Available") Icons.Default.CheckCircle else Icons.Default.Cancel,
+                            "Status",
+                            vehicle.status
+                        )
+                    )
+
+                    specs.chunked(2).forEach { row ->
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            row.forEach { (icon, label, value) ->
+                                val isStatus = label == "Status"
+                                val valueColor = when {
+                                    isStatus && value == "Available" -> Color(0xFF2E7D32)
+                                    isStatus -> Color(0xFFD32F2F)
+                                    else -> AppDarkBlue
+                                }
+                                SpecDetailItem(
+                                    icon = icon, label = label, value = value,
+                                    valueColor = valueColor,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (row.size < 2) Spacer(modifier = Modifier.weight(1f))
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.4f))
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // ปุ่มสั่งซื้อ
                     Button(
                         onClick = { showConfirmDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppDarkBlue),
-                        shape = RoundedCornerShape(30.dp),
-                        enabled = vehicle.status == "Available" && !isOrdering
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppDarkBlue,
+                            disabledContainerColor = Color.LightGray
+                        ),
+                        shape = RoundedCornerShape(28.dp),
+                        enabled = vehicle.status == "Available" && !isOrdering,
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                     ) {
-                        if (isOrdering) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                text = "สั่งซื้อรถคันนี้",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        AnimatedContent(
+                            targetState = isOrdering,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "btn"
+                        ) { loading ->
+                            if (loading) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.ShoppingCart, null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Order This Car", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
-
+                    if (vehicle.status != "Available") {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "This car is currently unavailable",
+                            fontSize = 12.sp, color = Color.Gray,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
-            // ── Popup ยืนยันการสั่งซื้อ ──
+            // Popup Confirmสั่งซื้อ
             if (showConfirmDialog) {
                 AlertDialog(
                     onDismissRequest = { showConfirmDialog = false },
                     containerColor = Color.White,
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(24.dp),
                     title = {
-                        Text(
-                            text = "ยืนยันการสั่งซื้อ",
-                            fontWeight = FontWeight.Bold,
-                            color = AppDarkBlue,
-                            fontSize = 18.sp
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.ShoppingCart, null, tint = AppDarkBlue, modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Confirm Order", fontWeight = FontWeight.Bold, color = AppDarkBlue, fontSize = 17.sp)
+                        }
                     },
                     text = {
                         Column {
-                            Text(
-                                text = "คุณต้องการสั่งซื้อรถรุ่นนี้ใช่หรือไม่?",
-                                color = Color.DarkGray
-                            )
+                            Text("Would you like to order this car?", color = Color.DarkGray)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(BgColor, RoundedCornerShape(12.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Column {
+                                    Text("${vehicle.brand} ${vehicle.model}", fontWeight = FontWeight.Bold, color = AppDarkBlue, fontSize = 15.sp)
+                                    Text("฿ ${NumberFormat.getNumberInstance(Locale.US).format(vehicle.price)}", color = AppLightBlue, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "${vehicle.brand} ${vehicle.model}",
-                                fontWeight = FontWeight.Bold,
-                                color = AppDarkBlue,
-                                fontSize = 16.sp
-                            )
-                            Text(
-                                text = "฿ ${NumberFormat.getNumberInstance(Locale.US).format(vehicle.price)}",
-                                color = AppLightBlue,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "⚠ สถานะ: รอการชำระเงิน",
-                                color = Color(0xFFE65100),
-                                fontSize = 13.sp
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AccessTime, null, tint = Color(0xFFE65100), modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Statusเริ่มต้น: รอการPay Now", fontSize = 12.sp, color = Color(0xFFE65100))
+                            }
                         }
                     },
                     confirmButton = {
@@ -210,22 +245,20 @@ fun DetailScreen(
                                 ) { isSuccess ->
                                     isOrdering = false
                                     if (isSuccess) {
-                                        Toast.makeText(context, "สั่งซื้อสำเร็จ! กรุณาชำระเงิน", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Order placed! Please proceed to payment.", Toast.LENGTH_SHORT).show()
                                         onBackClick()
                                     } else {
-                                        Toast.makeText(context, "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Something went wrong. Please try again.", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = AppDarkBlue),
                             shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("ยืนยัน", fontWeight = FontWeight.Bold)
-                        }
+                        ) { Text("Confirm", fontWeight = FontWeight.Bold) }
                     },
                     dismissButton = {
                         TextButton(onClick = { showConfirmDialog = false }) {
-                            Text("ยกเลิก", color = Color.Gray)
+                            Text("Cancel", color = Color.Gray)
                         }
                     }
                 )
@@ -234,32 +267,27 @@ fun DetailScreen(
     }
 }
 
-// Component สำหรับแสดงสเปคแต่ละรายการ
 @Composable
 fun SpecDetailItem(
     icon: ImageVector,
     label: String,
     value: String,
-    valueColor: Color = Color.Black
+    valueColor: Color = AppDarkBlue,
+    modifier: Modifier = Modifier
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(AppLightBlue.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                .size(38.dp)
+                .background(AppLightBlue.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = AppLightBlue,
-                modifier = Modifier.size(18.dp)
-            )
+            Icon(icon, null, tint = AppLightBlue, modifier = Modifier.size(18.dp))
         }
         Spacer(modifier = Modifier.width(10.dp))
         Column {
-            Text(text = label, fontSize = 11.sp, color = Color.Gray)
-            Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = valueColor)
+            Text(label, fontSize = 11.sp, color = Color.Gray)
+            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = valueColor)
         }
     }
 }

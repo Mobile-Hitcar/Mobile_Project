@@ -16,7 +16,7 @@ data class Order(
     val vehicleModel: String = "",
     val vehicleImageUrl: String = "",
     val vehiclePrice: Int = 0,
-    val status: String = "รอการชำระเงิน",
+    val status: String = "Awaiting Payment",
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -53,7 +53,7 @@ class OrderViewModel : ViewModel() {
             .addOnFailureListener { onResult(false) }
     }
 
-    // อัปเดตสถานะคำสั่งซื้อ (เช่น เปลี่ยนเป็น "ชำระเงินสำเร็จ")
+    // อัปเดตสถานะคำสั่งซื้อ (เช่น เปลี่ยนเป็น "Payment Successful")
     fun updateOrderStatus(orderId: String, newStatus: String, onResult: (Boolean) -> Unit) {
         collection.document(orderId)
             .update("status", newStatus)
@@ -74,7 +74,7 @@ class OrderViewModel : ViewModel() {
             vehicleModel = vehicle.model,
             vehicleImageUrl = vehicle.imageUrl,
             vehiclePrice = vehicle.price,
-            status = "รอการชำระเงิน"
+            status = "Awaiting Payment"
         )
         collection.add(newOrder)
             .addOnSuccessListener { onResult(true) }

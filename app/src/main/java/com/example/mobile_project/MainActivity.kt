@@ -3,6 +3,8 @@ package com.example.mobile_project
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,6 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -43,8 +48,6 @@ class MainActivity : ComponentActivity() {
             val currentRoute = navBackStackEntry?.destination?.route
 
             val screensWithBars = listOf("home", "history", "profile")
-
-            // หน้าที่มีปุ่มย้อนกลับ (TopBar) แต่ไม่มี BottomBar
             val isDetailScreen = currentRoute?.startsWith("detail/") == true
             val isPaymentScreen = currentRoute?.startsWith("payment/") == true
             val needsBackButton = isDetailScreen || isPaymentScreen
@@ -78,7 +81,15 @@ class MainActivity : ComponentActivity() {
                 NavHost(
                     navController = navController,
                     startDestination = "welcome",
-                    modifier = if (showTopBar) Modifier.padding(innerPadding) else Modifier
+                    modifier = if (showTopBar) Modifier.padding(innerPadding) else Modifier,
+                    enterTransition = {
+                        fadeIn(tween(280)) + slideInHorizontally(tween(280)) { it / 5 }
+                    },
+                    exitTransition = { fadeOut(tween(200)) },
+                    popEnterTransition = {
+                        fadeIn(tween(280)) + slideInHorizontally(tween(280)) { -it / 5 }
+                    },
+                    popExitTransition = { fadeOut(tween(200)) }
                 ) {
                     composable("welcome") {
                         WelcomeScreen(
@@ -105,47 +116,29 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-
-                    composable("home") {
-                        HomeScreen(navController = navController)
+                    composable("home") { HomeScreen(navController = navController) }
+                    composable("detail/{vehicleId}") { back ->
+                        val vehicleId = back.arguments?.getString("vehicleId") ?: ""
+                        DetailScreen(vehicleId = vehicleId, onBackClick = { navController.popBackStack() })
                     }
-
-                    composable("detail/{vehicleId}") { backStackEntry ->
-                        val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: ""
-                        DetailScreen(
-                            vehicleId = vehicleId,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable("history") {
-                        HistoryScreen(navController = navController)
-                    }
-
-                    // ✅ route ชำระเงิน — รับข้อมูลจาก URL
-                    composable("payment/{orderId}/{brand}/{model}/{price}") { backStackEntry ->
-                        val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
-                        val brand = backStackEntry.arguments?.getString("brand") ?: ""
-                        val model = backStackEntry.arguments?.getString("model") ?: ""
-                        val price = backStackEntry.arguments?.getString("price")?.toIntOrNull() ?: 0
+                    composable("history") { HistoryScreen(navController = navController) }
+                    composable("payment/{orderId}/{brand}/{model}/{price}") { back ->
+                        val orderId = back.arguments?.getString("orderId") ?: ""
+                        val brand = back.arguments?.getString("brand") ?: ""
+                        val model = back.arguments?.getString("model") ?: ""
+                        val price = back.arguments?.getString("price")?.toIntOrNull() ?: 0
                         PaymentScreen(
-                            orderId = orderId,
-                            vehicleBrand = brand,
-                            vehicleModel = model,
-                            vehiclePrice = price,
+                            orderId = orderId, vehicleBrand = brand,
+                            vehicleModel = model, vehiclePrice = price,
                             onBackClick = { navController.popBackStack() },
                             onPaymentSuccess = {
-                                // กลับไปหน้า history และล้าง payment stack ออก
                                 navController.navigate("history") {
                                     popUpTo("history") { inclusive = false }
                                 }
                             }
                         )
                     }
-
-                    composable("profile") {
-                        ProfileScreen()
-                    }
+                    composable("profile") { ProfileScreen() }
                 }
             }
         }
@@ -158,73 +151,132 @@ val BottomPanelBlue = Color(0xFF2FA2E9)
 
 @Composable
 fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
-    Column(
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(700, easing = EaseOutCubic), label = "la"
+    )
+    val logoScale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.88f,
+        animationSpec = tween(700, easing = EaseOutBack), label = "ls"
+    )
+    val textAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(600, delayMillis = 200, easing = EaseOutCubic), label = "ta"
+    )
+    val panelAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(600, delayMillis = 350, easing = EaseOutCubic), label = "pa"
+    )
+    val panelSlide by animateFloatAsState(
+        targetValue = if (visible) 0f else 60f,
+        animationSpec = tween(600, delayMillis = 350, easing = EaseOutCubic), label = "ps"
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(TopBackgroundColor),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Brush.verticalGradient(listOf(Color(0xFFECF5FD), Color(0xFFF5F7FA))))
     ) {
-        Spacer(modifier = Modifier.height(80.dp))
-
-        Image(
-            painter = painterResource(id = R.drawable.hitcar_template),
-            contentDescription = "HitCar Logo",
-            modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .padding(16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Let's find your\nperfect car!",
-            fontSize = 34.sp,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryDarkBlue,
-            textAlign = TextAlign.Center,
-            lineHeight = 38.sp
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = BottomPanelBlue,
-            shape = RoundedCornerShape(topStart = 48.dp, topEnd = 48.dp)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
+            Spacer(modifier = Modifier.height(90.dp))
+
+            Image(
+                painter = painterResource(id = R.drawable.hitcar_template),
+                contentDescription = "HitCar Logo",
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 72.dp, bottom = 110.dp, start = 32.dp, end = 32.dp),
+                    .fillMaxWidth(0.62f)
+                    .padding(horizontal = 16.dp)
+                    .alpha(logoAlpha)
+                    .scale(logoScale)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Column(
+                modifier = Modifier.alpha(textAlpha),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Hello", fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Welcome To HitCar, where\nyou can find your perfect car",
-                    fontSize = 16.sp, color = Color.White,
-                    textAlign = TextAlign.Center, lineHeight = 24.sp
+                    text = "Find Your",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF2FA2E9),
+                    letterSpacing = 2.sp
                 )
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Perfect Car",
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = PrimaryDarkBlue
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .width(40.dp).height(4.dp)
+                        .background(
+                            Brush.horizontalGradient(listOf(Color(0xFF2FA2E9), Color(0xFF0D3D82))),
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+            }
 
-                Button(
-                    onClick = { onLoginClick() },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryDarkBlue),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Text(text = "Login", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
+            Spacer(modifier = Modifier.weight(1f))
 
-                Spacer(modifier = Modifier.height(16.dp))
+            // Bottom panel
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = panelSlide.dp)
+                    .alpha(panelAlpha)
+                    .background(
+                        Brush.verticalGradient(listOf(Color(0xFF2FA2E9), Color(0xFF0A3272))),
+                        RoundedCornerShape(topStart = 44.dp, topEnd = 44.dp)
+                    )
+                    .padding(top = 48.dp, bottom = 72.dp, start = 32.dp, end = 32.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "Welcome to HitCar",
+                        fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "The smartest platform\nto find your dream car",
+                        fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center, lineHeight = 22.sp
+                    )
+                    Spacer(modifier = Modifier.height(36.dp))
 
-                Button(
-                    onClick = { onRegisterClick() },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Text(text = "Register", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PrimaryDarkBlue)
+                    Button(
+                        onClick = onLoginClick,
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(27.dp),
+                        elevation = ButtonDefaults.buttonElevation(0.dp)
+                    ) {
+                        Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PrimaryDarkBlue)
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedButton(
+                        onClick = onRegisterClick,
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = androidx.compose.ui.graphics.SolidColor(Color.White.copy(alpha = 0.6f))
+                        ),
+                        shape = RoundedCornerShape(27.dp)
+                    ) {
+                        Text("Register", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }

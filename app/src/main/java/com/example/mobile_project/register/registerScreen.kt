@@ -54,7 +54,7 @@ fun RegisterScreen(
         )
 
         Text(
-            text = "Create your Account",
+            text = "Create Your Account",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF00337C),

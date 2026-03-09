@@ -80,7 +80,7 @@ fun ProfileScreen(userViewModel: UserViewModel = viewModel()) {
                 ) {
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    Text(text = "Edit Account", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00337C), modifier = Modifier.padding(bottom = 24.dp))
+                    Text(text = "Edit Profile", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00337C), modifier = Modifier.padding(bottom = 24.dp))
 
                     // ✅ ปลดล็อคให้แก้ Email ได้แล้ว!
                     EditTextField(label = "Email", value = email, onValueChange = { email = it })
@@ -107,9 +107,9 @@ fun ProfileScreen(userViewModel: UserViewModel = viewModel()) {
                             ) { isSuccess ->
                                 if (isSuccess) {
                                     UserSession.currentUserEmail = email // ✅ อัปเดต Session ให้จำอีเมลใหม่ด้วย
-                                    Toast.makeText(context, "อัปเดตข้อมูลสำเร็จ!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
                                 } else {
-                                    Toast.makeText(context, "เกิดข้อผิดพลาดในการอัปเดต", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Failed to update profile.", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         },
