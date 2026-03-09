@@ -206,13 +206,13 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                TextButton(onClick = { }) {
-                    Text(
-                        text = "Forget Password ?",
-                        color = Color(0xFF00337C),
-                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                    )
-                }
+//                TextButton(onClick = { }) {
+//                    Text(
+//                        text = "Forget Password ?",
+//                        color = Color(0xFF00337C),
+//                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+//                    )
+//                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 

@@ -7,9 +7,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -21,8 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -32,11 +27,12 @@ import com.example.mobile_project.login.LoginScreen
 import com.example.mobile_project.register.RegisterScreen
 import com.example.mobile_project.vehicle.CustomBottomNavBar
 import com.example.mobile_project.vehicle.CustomTopAppBar
+import com.example.mobile_project.vehicle.DetailScreen
+import com.example.mobile_project.vehicle.HistoryScreen
 import com.example.mobile_project.vehicle.HomeScreen
-import com.example.mobile_project.vehicle.VehicleTestScreen
-import com.example.mobile_project.firebaseDB.UserSession // อย่าลืม Import
-import com.google.firebase.auth.FirebaseAuth // อย่าลืม Import
-
+import com.example.mobile_project.vehicle.PaymentScreen
+import com.example.mobile_project.firebaseDB.UserSession
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,52 +42,44 @@ class MainActivity : ComponentActivity() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
 
-            // กำหนดรายชื่อหน้าจอที่ "ต้องการให้แสดง" TopBar และ BottomBar
-            val screensWithBars = listOf("home", "profile")
+            val screensWithBars = listOf("home", "history", "profile")
 
-            // ตัวแปรเช็คว่าควรโชว์บาร์ไหม (ถ้า currentRoute อยู่ในลิสต์ด้านบน จะเป็น true)
-            val showBars = currentRoute in screensWithBars
+            // หน้าที่มีปุ่มย้อนกลับ (TopBar) แต่ไม่มี BottomBar
+            val isDetailScreen = currentRoute?.startsWith("detail/") == true
+            val isPaymentScreen = currentRoute?.startsWith("payment/") == true
+            val needsBackButton = isDetailScreen || isPaymentScreen
 
-            // โครงสร้างหลักของแอป
+            val showBottomBar = currentRoute in screensWithBars
+            val showTopBar = currentRoute in screensWithBars || needsBackButton
+
             Scaffold(
                 topBar = {
-                    if (showBars) {
+                    if (showTopBar) {
                         CustomTopAppBar(
                             onBackClick = { navController.popBackStack() },
-                            // ✅ เพิ่มคำสั่งนี้เข้าไป
+                            showBackButton = needsBackButton,
                             onLogoutClick = {
-                                // 1. ล้างข้อมูล Session อีเมล
                                 UserSession.currentUserEmail = ""
-
-                                // 2. สั่ง SignOut ออกจากระบบ Google (ถ้ามี)
                                 FirebaseAuth.getInstance().signOut()
-
-                                // 3. กลับไปหน้า Welcome และล้างประวัติหน้าจอทั้งหมดทิ้ง
                                 navController.navigate("welcome") {
-                                    popUpTo(navController.graph.id) {
-                                        inclusive = true
-                                    }
+                                    popUpTo(navController.graph.id) { inclusive = true }
                                 }
                             }
                         )
                     }
                 },
                 bottomBar = {
-                    // โชว์ BottomBar เฉพาะหน้าที่กำหนด
-                    if (showBars) {
+                    if (showBottomBar) {
                         CustomBottomNavBar(navController, currentRoute)
                     }
                 },
-                containerColor = Color(0xFFF6F8FA) // ใส่สีพื้นหลังหลักของแอปที่นี่
+                containerColor = Color(0xFFF6F8FA)
             ) { innerPadding ->
-
                 NavHost(
                     navController = navController,
                     startDestination = "welcome",
-                    // ✅ แก้ไขตรงนี้: เช็คว่าถ้าเป็นหน้าที่มี Bar ค่อยใส่ padding ถ้าไม่มีให้ทะลุขอบจอ (Modifier เปล่าๆ)
-                    modifier = if (showBars) Modifier.padding(innerPadding) else Modifier
+                    modifier = if (showTopBar) Modifier.padding(innerPadding) else Modifier
                 ) {
-                    // ... (composable หน้าอื่นๆ ด้านในคงไว้เหมือนเดิม) ...
                     composable("welcome") {
                         WelcomeScreen(
                             onLoginClick = { navController.navigate("login") },
@@ -103,10 +91,8 @@ class MainActivity : ComponentActivity() {
                             onNavigateToRegister = {
                                 navController.navigate("register") { popUpTo("welcome") }
                             },
-                            // ✅ เพิ่มบรรทัดนี้ เพื่อให้เวลากด Login แล้วเด้งไปหน้า home
                             onNavigateToHome = {
                                 navController.navigate("home") {
-                                    // ลบประวัติหน้า login ทิ้งไป เวลาผู้ใช้กดปุ่ม Back จะได้ไม่ถอยกลับมาหน้า login อีก
                                     popUpTo("login") { inclusive = true }
                                 }
                             }
@@ -120,13 +106,43 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // หน้า Home ของเรา
                     composable("home") {
-                        HomeScreen()
+                        HomeScreen(navController = navController)
                     }
-                    composable("test-vehicle") {
-                        VehicleTestScreen()
+
+                    composable("detail/{vehicleId}") { backStackEntry ->
+                        val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: ""
+                        DetailScreen(
+                            vehicleId = vehicleId,
+                            onBackClick = { navController.popBackStack() }
+                        )
                     }
+
+                    composable("history") {
+                        HistoryScreen(navController = navController)
+                    }
+
+                    // ✅ route ชำระเงิน — รับข้อมูลจาก URL
+                    composable("payment/{orderId}/{brand}/{model}/{price}") { backStackEntry ->
+                        val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
+                        val brand = backStackEntry.arguments?.getString("brand") ?: ""
+                        val model = backStackEntry.arguments?.getString("model") ?: ""
+                        val price = backStackEntry.arguments?.getString("price")?.toIntOrNull() ?: 0
+                        PaymentScreen(
+                            orderId = orderId,
+                            vehicleBrand = brand,
+                            vehicleModel = model,
+                            vehiclePrice = price,
+                            onBackClick = { navController.popBackStack() },
+                            onPaymentSuccess = {
+                                // กลับไปหน้า history และล้าง payment stack ออก
+                                navController.navigate("history") {
+                                    popUpTo("history") { inclusive = false }
+                                }
+                            }
+                        )
+                    }
+
                     composable("profile") {
                         ProfileScreen()
                     }
@@ -136,7 +152,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// กำหนดสีตามภาพ Design
 val TopBackgroundColor = Color(0xFFF7F8FA)
 val PrimaryDarkBlue = Color(0xFF0D3D82)
 val BottomPanelBlue = Color(0xFF2FA2E9)
@@ -149,7 +164,6 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
             .background(TopBackgroundColor),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // --- ส่วนบน (โลโก้ และ ข้อความ) ---
         Spacer(modifier = Modifier.height(80.dp))
 
         Image(
@@ -173,7 +187,6 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // --- ส่วนล่าง (กล่องสีฟ้าและปุ่มกด) ---
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = BottomPanelBlue,
@@ -185,59 +198,33 @@ fun WelcomeScreen(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) {
                     .padding(top = 72.dp, bottom = 110.dp, start = 32.dp, end = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Hello",
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-
+                Text(text = "Hello", fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(12.dp))
-
                 Text(
                     text = "Welcome To HitCar, where\nyou can find your perfect car",
-                    fontSize = 16.sp,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 24.sp
+                    fontSize = 16.sp, color = Color.White,
+                    textAlign = TextAlign.Center, lineHeight = 24.sp
                 )
-
                 Spacer(modifier = Modifier.height(48.dp))
 
-                // ปุ่ม Login
                 Button(
                     onClick = { onLoginClick() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryDarkBlue),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Text(
-                        text = "Login",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Text(text = "Login", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ปุ่ม Register
                 Button(
                     onClick = { onRegisterClick() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Text(
-                        text = "Register",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryDarkBlue
-                    )
+                    Text(text = "Register", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PrimaryDarkBlue)
                 }
             }
         }
